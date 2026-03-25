@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# 99-hostapd_cli_starter
+# Hotplug script to start hostapd_cli with event handler on wireless interface up
+
+logger -t hotplug-hostapd "$(env)"
+
+_SCRIPT=/usr/sbin/hostapd_event_handler.sh
+
+if [ -n "$_SCRIPT" ]; then
+        if [ -n "$(ps | grep hostapd_cli | grep -v grep)" ] ;then
+                ps | grep hostapd_cli | grep -v grep | awk '{print $1}' | xargs kill
+        fi
+        iwinfo | grep ESSID | cut -f 1 -s -d" " \
+        | while read _inf; do
+                /usr/sbin/hostapd_cli -a ${_SCRIPT} -B -i${_inf}
+        done
+fi
