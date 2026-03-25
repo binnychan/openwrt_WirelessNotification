@@ -91,6 +91,7 @@ cleanup_disconnected_entries() {
             delay_hms=$(seconds_to_hms "$delay")
             # debug:
             # echo "Removed old entry: interface=$interface mac=$mac (age=$age_hms, delay=$delay_hms)"
+            logger -t hostapd-event "AP-STA-DISCONNECTED $1 $3 (Cleanup - age=$age_hms, delay=$delay_hms)"
             sendMessage "disconnected" "$interface" "$mac" "SendNotification" "$age_hms" "$delay_hms"
         else
             kept=$((kept+1))
@@ -109,13 +110,25 @@ fi
 # Regular hostapd event handling
 case "$2" in
     AP-STA-CONNECTED)
+        
         if grep -qF "$3" "$WL_FILE" 2>/dev/null; then
+            # Get the old interface from the entry
+            old_entry=$(grep " $3$" "$WL_FILE")
+            old_interface=$(echo "$old_entry" | awk '{print $2}')
             sed -i "\|^.* $3\$|d" "$WL_FILE"
+            if [ "$old_interface" = "$1" ]; then
+                logger -t hostapd-event "AP-STA-CONNECTED $1 $3 (Reconnected same interface)"
+            else
+                logger -t hostapd-event "AP-STA-CONNECTED $1 $3 (Roamed from $old_interface to $1)"
+                # sendMessage "roamed from $old_interface to $1" "$1" "$3" "SendNotification"
+            fi
         else
+            logger -t hostapd-event "AP-STA-CONNECTED $1 $3 (New)"
             sendMessage "connected" "$1" "$3" "SendNotification"
         fi
         ;;
     AP-STA-DISCONNECTED)
+        logger -t hostapd-event "AP-STA-DISCONNECTED $1 $3 (Pending Cleanup)"
         echo "$(date -Iseconds) $1 $3" >> "$WL_FILE"
         # sendMessage "disconnected" "$1" "$3" "SendNotification"
         ;;
