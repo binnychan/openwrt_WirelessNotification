@@ -24,6 +24,7 @@ sendMessage() {
 
     local ip=$(grep -i "$mac" /tmp/dhcp.leases 2>/dev/null | awk '{print $3}')
     local clientname=$(grep -i "$mac" /tmp/dhcp.leases 2>/dev/null | awk '{print $4}')
+    if [ -z "$clientname" ]; then clientname="[Unknown]"; fi
     local ssid=$(iwinfo "$interface" info | grep "ESSID:" | awk '{print $3}' | tr -d '"')
 
     if [ -n "$telegram" ]; then
